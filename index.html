@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Study Timer">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>📚 Study Timer</title>
+<style>
+:root{
+  --bg:#f7f3ff; --card:#ffffff; --soft:#f0ecff; --accent:#7669df;
+  --accent2:#dcd6ff; --text:#303040; --muted:#777386; --border:#eceaf2;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; min-height:100dvh; font-family:Arial,"Noto Sans KR",sans-serif;
+  background:linear-gradient(135deg,var(--bg),#fff);
+  color:var(--text); padding:max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); transition:.25s; -webkit-tap-highlight-color:transparent;
+}
+.app{width:min(700px,100%);margin:auto}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:28px;
+  padding:25px;box-shadow:0 15px 50px rgba(50,45,80,.10)
+}
+h1{text-align:center;margin:0 0 5px;font-size:30px}
+.status{text-align:center;color:var(--muted);margin-bottom:18px}
+.stats{display:flex;gap:10px;margin-bottom:18px}
+.stat{flex:1;background:var(--soft);border-radius:16px;padding:12px;text-align:center}
+.stat b{display:block;font-size:20px;margin-top:3px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+button{
+  border:0;border-radius:14px;padding:13px 10px;background:var(--soft);color:var(--text);
+  font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;
+  transition:transform .12s,filter .12s,background .2s
+}
+button:active{transform:scale(.98)}
+button:hover{filter:brightness(.97)}
+.mode.active{background:var(--accent2);outline:2px solid var(--accent)}
+.free{grid-column:1/-1}
+.timer{font-size:76px;font-weight:800;letter-spacing:2px;text-align:center;margin:25px 0 4px}
+.phase{text-align:center;font-size:17px;font-weight:700;margin-bottom:17px}
+.controls{display:flex;justify-content:center;gap:10px}
+.controls button{min-width:125px;font-size:16px}
+.primary{background:var(--accent);color:#fff}
+.section{margin-top:22px;border-top:1px solid var(--border);padding-top:18px}
+.sound-row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.sound-row span{font-size:13px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.records{max-height:220px;overflow:auto;background:var(--soft);border-radius:14px;padding:12px;font-size:14px}
+.record{padding:9px 4px;border-bottom:1px solid var(--border)}
+.record:last-child{border:0}
+.color-grid{display:flex;gap:9px;flex-wrap:wrap}
+.color-btn{width:42px;height:42px;padding:0;border-radius:50%;border:3px solid transparent}
+.color-btn.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--card)}
+dialog{border:0;border-radius:20px;padding:22px;width:min(390px,90vw);box-shadow:0 15px 50px #0003}
+dialog::backdrop{background:#0005}
+input[type=number]{width:100%;padding:11px;border:1px solid var(--border);border-radius:10px;margin:6px 0 12px}
+.dialog-buttons{display:flex;gap:8px}
+.dialog-buttons button{flex:1}
+
+/* Large timer mode */
+body.focus-mode{padding:0;background:var(--bg)}
+body.focus-mode .app{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center}
+body.focus-mode .main-card{width:min(900px,100%);min-height:100vh;border:0;border-radius:0;display:flex;flex-direction:column;justify-content:center;padding:35px 22px}
+body.focus-mode .header,
+body.focus-mode .stats,
+body.focus-mode .modes,
+body.focus-mode .settings,
+body.focus-mode .records-section{display:none}
+body.focus-mode .focus-only{display:block}
+body.focus-mode .timer{font-size:clamp(90px,20vw,180px);margin:5px 0 0}
+body.focus-mode .phase{font-size:clamp(20px,4vw,30px);margin-bottom:28px}
+body.focus-mode .controls button{min-width:150px;padding:16px;font-size:18px}
+.focus-only{display:none}
+.focus-top{display:flex;justify-content:space-between;align-items:center;width:min(760px,100%);margin:0 auto 20px}
+.focus-mode-btn{background:var(--soft)}
+@media(max-width:520px){
+  .card{padding:20px;border-radius:24px}
+  body{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  h1{font-size:25px}
+  .controls{position:sticky;bottom:8px;z-index:5;background:var(--card);padding:8px;border-radius:18px}
+  .controls button{flex:1;min-width:0;min-height:50px}
+  .color-btn{width:46px;height:46px}
+  .timer{font-size:58px}
+  .modes{grid-template-columns:1fr}
+  .free{grid-column:auto}
+  .sound-row{flex-wrap:wrap}
+  .sound-row span{width:100%;flex-basis:100%}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card main-card">
+    <div class="header">
+      <h1>📚 STUDY TIMER</h1>
+      <div class="status" id="status">공부 모드를 선택하세요</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">오늘 완료<b id="sessions">0회</b></div>
+      <div class="stat">총 공부<b id="total">0분</b></div>
+    </div>
+
+    <div class="modes">
+      <button class="mode active" data-study="30" data-break="10" data-name="🌱 초심자">🌱 초심자<br>30분 / 10분</button>
+      <button class="mode" data-study="40" data-break="10" data-name="🌿 중급">🌿 중급<br>40분 / 10분</button>
+      <button class="mode" data-study="50" data-break="10" data-name="🔥 고급">🔥 고급<br>50분 / 10분</button>
+      <button class="mode" data-study="60" data-break="10" data-name="👑 전문가">👑 전문가<br>60분 / 10분</button>
+      <button class="mode free" id="freeBtn">✨ 자유모드<br>공부/휴식 시간을 직접 설정</button>
+    </div>
+
+    <div class="timer" id="timer">30:00</div>
+    <div class="phase" id="phase">📖 공부 시간</div>
+
+    <div class="controls">
+      <button class="primary" id="start" type="button">▶ 시작</button>
+      <button id="reset" type="button">↻ 초기화</button>
+    </div>
+
+    <div class="focus-only">
+      <div class="focus-top">
+        <span id="focusModeName"></span>
+        <button class="focus-mode-btn" id="exitFocus" type="button">화면 줄이기</button>
+      </div>
+    </div>
+
+    <div class="section settings">
+      <h3>🎨 색상 테마</h3>
+      <div class="color-grid">
+        <button class="color-btn selected" title="라벤더" data-theme="lavender" style="background:#7669df"></button>
+        <button class="color-btn" title="핑크" data-theme="pink" style="background:#e58ba8"></button>
+        <button class="color-btn" title="하늘" data-theme="sky" style="background:#62a8d8"></button>
+        <button class="color-btn" title="민트" data-theme="mint" style="background:#62bca7"></button>
+        <button class="color-btn" title="노랑" data-theme="yellow" style="background:#d6a83e"></button>
+        <button class="color-btn" title="복숭아" data-theme="peach" style="background:#e58d72"></button>
+        <button class="color-btn" title="네이비" data-theme="navy" style="background:#52698f"></button>
+        <button class="color-btn" title="화이트" data-theme="white" style="background:#fff;border:1px solid #bbb"></button>
+        <button class="color-btn" title="블랙" data-theme="black" style="background:#111;border:1px solid #555"></button>
+      </div>
+    </div>
+
+    <div class="section settings">
+      <h3>🔔 알림 설정</h3>
+      <div class="sound-row">
+        <button id="studySoundBtn" type="button">공부 종료 사운드</button>
+        <span id="studySoundName">기본 알림음</span>
+        <input id="studySound" type="file" accept="audio/*" hidden>
+      </div>
+      <div class="sound-row">
+        <button id="breakSoundBtn" type="button">휴식 종료 사운드</button>
+        <span id="breakSoundName">기본 알림음</span>
+        <input id="breakSound" type="file" accept="audio/*" hidden>
+      </div>
+      <button id="preview" type="button">🎵 선택한 사운드 미리듣기</button>
+    </div>
+
+    <div class="section records-section">
+      <h3>📊 최근 기록</h3>
+      <div class="records" id="records"></div>
+    </div>
+  </div>
+</div>
+
+<dialog id="freeDialog">
+  <h3>✨ 자유모드 설정</h3>
+  <label>공부 시간 (분)</label>
+  <input id="freeStudy" type="number" min="1" value="75">
+  <label>휴식 시간 (분)</label>
+  <input id="freeBreak" type="number" min="0" value="15">
+  <div class="dialog-buttons">
+    <button id="cancelFree" type="button">취소</button>
+    <button class="primary" id="applyFree" type="button">적용</button>
+  </div>
+</dialog>
+
+<script>
+let studyMin=30, breakMin=10, modeName="🌱 초심자";
+let phase="study", remaining=studyMin*60, running=false, timerId=null, last=0;
+let studyTotal=0, sessions=0, studyAudio=null, breakAudio=null;
+
+const $=id=>document.getElementById(id);
+const themes={
+  lavender:{bg:"#f7f3ff",accent:"#7669df",soft:"#f0ecff",accent2:"#dcd6ff"},
+  pink:{bg:"#fff3f7",accent:"#d96f94",soft:"#fff0f5",accent2:"#ffd6e4"},
+  sky:{bg:"#f0f8ff",accent:"#4d98cb",soft:"#e9f6ff",accent2:"#cfeaff"},
+  mint:{bg:"#effbf7",accent:"#4aa890",soft:"#e5f7f2",accent2:"#ccefe6"},
+  yellow:{bg:"#fffaf0",accent:"#c49531",soft:"#fff6dc",accent2:"#f9e6ae"},
+  peach:{bg:"#fff4ef",accent:"#d97b5e",soft:"#fff0e9",accent2:"#ffd8ca"},
+  navy:{bg:"#eef2f9",accent:"#52698f",soft:"#e8edf7",accent2:"#d1daeb"},
+  white:{bg:"#ffffff",accent:"#111111",soft:"#f3f3f3",accent2:"#e6e6e6",card:"#ffffff",text:"#111111",muted:"#666666",border:"#dddddd"},
+  black:{bg:"#0b0b0b",accent:"#ffffff",soft:"#1b1b1b",accent2:"#2a2a2a",card:"#111111",text:"#ffffff",muted:"#aaaaaa",border:"#303030"}
+};
+function applyTheme(name){
+  const t=themes[name]||themes.lavender;
+  const root=document.documentElement;
+  Object.entries(t).forEach(([k,v])=>root.style.setProperty("--"+k,v));
+  localStorage.setItem("studyTheme",name);
+  document.querySelectorAll(".color-btn").forEach(b=>b.classList.toggle("selected",b.dataset.theme===name));
+}
+document.querySelectorAll(".color-btn").forEach(b=>b.onclick=()=>applyTheme(b.dataset.theme));
+applyTheme(localStorage.getItem("studyTheme")||"lavender");
+
+function today(){return new Date().toISOString().slice(0,10)}
+function load(){
+  const r=JSON.parse(localStorage.getItem("studyRecords")||"{}"),d=r[today()]||{sessions:0,total:0};
+  sessions=d.sessions||0;studyTotal=d.total||0;renderRecords(r);updateStats();
+}
+function save(){
+  const r=JSON.parse(localStorage.getItem("studyRecords")||"{}");
+  r[today()]={sessions:sessions,total:Math.floor(studyTotal)};
+  localStorage.setItem("studyRecords",JSON.stringify(r));renderRecords(r);updateStats();
+}
+function updateStats(){ $("sessions").textContent=sessions+"회"; $("total").textContent=Math.floor(studyTotal/60)+"분"; }
+function renderRecords(r){
+  const keys=Object.keys(r).sort().reverse();
+  $("records").innerHTML=keys.length?keys.map(k=>`<div class="record">📅 <b>${k}</b>　${r[k].sessions}회　/　${Math.floor(r[k].total/60)}분</div>`).join(""):"아직 기록이 없어요!";
+}
+function display(){
+  const s=Math.max(0,Math.ceil(remaining)),m=Math.floor(s/60),sec=s%60;
+  $("timer").textContent=String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");
+  $("phase").textContent=phase==="study"?"📖 공부 시간":"☕ 휴식 시간";
+  $("focusModeName").textContent=modeName;
+}
+function setMode(name,sm,bm,btn){
+  if(running){alert("타이머를 멈춘 뒤 모드를 바꿔주세요.");return}
+  modeName=name;studyMin=sm;breakMin=bm;phase="study";remaining=sm*60;
+  document.querySelectorAll(".mode").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");$("status").textContent=`${name} 선택됨`;display();
+}
+document.querySelectorAll(".mode:not(.free)").forEach(b=>b.onclick=()=>setMode(b.dataset.name,+b.dataset.study,+b.dataset.break,b));
+$("freeBtn").onclick=()=>{
+  if(running){alert("타이머를 멈춘 뒤 자유모드를 선택해주세요.");return}
+  $("freeDialog").showModal();
+};
+$("cancelFree").onclick=()=>$("freeDialog").close();
+$("applyFree").onclick=()=>{
+  const s=+$("freeStudy").value,b=+$("freeBreak").value;
+  if(!Number.isFinite(s)||s<1||!Number.isFinite(b)||b<0){alert("시간을 올바르게 입력해주세요.");return}
+  modeName="✨ 자유모드";studyMin=s;breakMin=b;phase="study";remaining=s*60;
+  document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));
+  $("freeBtn").classList.add("active");$("status").textContent=`✨ 자유모드: ${s}분 공부 / ${b}분 휴식`;
+  $("freeDialog").close();display();
+};
+function finish(){
+  running=false;clearInterval(timerId);timerId=null;
+  play(phase==="study"?studyAudio:breakAudio);
+  if(phase==="study"){
+    sessions++;save();
+    alert(`🎉 공부 완료!\
+${studyMin}분 공부했어요.\
+이제 ${breakMin}분 휴식하세요 ☕`);
+    phase="break";remaining=breakMin*60;$("status").textContent="휴식 중!";
+  }else{
+    alert("🔔 휴식 종료!\
+다시 공부해볼까요? 📚");
+    phase="study";remaining=studyMin*60;$("status").textContent=`${modeName} - 다시 시작할 준비!`;
+  }
+  $("start").textContent="▶ 시작";display();
+}
+function tick(){
+  const now=Date.now(),elapsed=(now-last)/1000;last=now;
+  remaining-=elapsed;if(phase==="study")studyTotal+=elapsed;
+  if(remaining<=0){remaining=0;display();finish();return}
+  display();updateStats();
+}
+$("start").onclick=()=>{
+  // User gesture occurs directly on this button, so browsers permit audio later
+  if(running){
+    running=false;clearInterval(timerId);timerId=null;
+    $("start").textContent="▶ 계속하기";return;
+  }
+  running=true;last=Date.now();$("start").textContent="⏸ 일시정지";
+  $("status").textContent=phase==="study"?"공부 중! 집중해봐요 💪":"휴식 중! 편하게 쉬어요 ☕";
+  document.body.classList.add("focus-mode");
+  display();
+  timerId=setInterval(tick,200);
+};
+$("reset").onclick=()=>{
+  running=false;clearInterval(timerId);timerId=null;phase="study";remaining=studyMin*60;
+  $("start").textContent="▶ 시작";$("status").textContent=`${modeName} 선택됨`;
+  document.body.classList.remove("focus-mode");display();
+};
+$("exitFocus").onclick=()=>document.body.classList.remove("focus-mode");
+
+function play(url){
+  if(url){const a=new Audio(url);a.play().catch(()=>beep())}else beep();
+}
+function beep(){
+  try{
+    const C=window.AudioContext||window.webkitAudioContext,c=new C(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.12;o.start();
+    setTimeout(()=>o.stop(),500);
+  }catch(e){alert("⏰ 시간이 끝났어요!")}
+}
+function pick(input,kind,label){
+  const f=input.files[0];if(!f)return;
+  const url=URL.createObjectURL(f);
+  if(kind==="study")studyAudio=url;else breakAudio=url;
+  label.textContent="선택됨: "+f.name;
+}
+$("studySoundBtn").onclick=()=>$("studySound").click();
+$("breakSoundBtn").onclick=()=>$("breakSound").click();
+$("studySound").onchange=()=>pick($("studySound"),"study",$("studySoundName"));
+$("breakSound").onchange=()=>pick($("breakSound"),"break",$("breakSoundName"));
+$("preview").onclick=()=>play(studyAudio||breakAudio);
+
+load();display();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
